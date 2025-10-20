@@ -1,7 +1,11 @@
 #include "PluginProcessor.hh"
 #include "PluginEditor.hh"
+#include "juce_audio_basics/juce_audio_basics.h"
+#include "juce_audio_formats/juce_audio_formats.h"
+#include "juce_audio_processors/juce_audio_processors.h"
+#include "juce_core/juce_core.h"
+#include <memory>
 
-//==============================================================================
 PluginProcessor::PluginProcessor()
     : AudioProcessor(
           BusesProperties()
@@ -11,12 +15,16 @@ PluginProcessor::PluginProcessor()
 #endif
               .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-      ) {
+              ),
+      params(*this, nullptr, "Params", parameterLayout()) {
+  formatManager.registerBasicFormats();
+  for (int i = 0; i < numVoices; i++) {
+    sampler.addVoice(new juce::SamplerVoice);
+  }
 }
 
 PluginProcessor::~PluginProcessor() {}
 
-//==============================================================================
 const juce::String PluginProcessor::getName() const { return JucePlugin_Name; }
 
 bool PluginProcessor::acceptsMidi() const {
@@ -63,9 +71,9 @@ void PluginProcessor::changeProgramName(int index,
   juce::ignoreUnused(index, newName);
 }
 
-//==============================================================================
 void PluginProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
   juce::ignoreUnused(sampleRate, samplesPerBlock);
+  sampler.setCurrentPlaybackSampleRate(sampleRate);
 }
 
 void PluginProcessor::releaseResources() {}
@@ -98,9 +106,19 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
-  for (int channel = 0; channel < totalNumInputChannels; ++channel) {
-    auto *channelData = buffer.getWritePointer(channel);
-    juce::ignoreUnused(channelData);
+  sampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+}
+
+void PluginProcessor::loadFile(const juce::String &path) {
+  sampler.clearSounds();
+  const auto file = juce::File(path);
+
+  if (const std::unique_ptr<juce::AudioFormatReader> reader{
+          formatManager.createReaderFor(file)}) {
+    juce::BigInteger range;
+    range.setRange(0, 128, true);
+    sampler.addSound(
+        new juce::SamplerSound("Sample", *reader, range, 60, 0.1, 0.1, 10.0));
   }
 }
 
@@ -116,6 +134,32 @@ void PluginProcessor::getStateInformation(juce::MemoryBlock &destData) {
 
 void PluginProcessor::setStateInformation(const void *data, int sizeInBytes) {
   juce::ignoreUnused(data, sizeInBytes);
+}
+
+juce::AudioBuffer<float>& PluginProcessor::getWaveForm() const {
+    if (const auto sound = dynamic_cast<juce::SamplerSound*>(sampler.getSound(sampler.getNumSounds() - 1).get()))
+    {
+        return *sound->getAudioData();
+    }
+
+    static juce::AudioBuffer<float> dummybuffer;
+
+    return dummybuffer;
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout
+PluginProcessor::parameterLayout() {
+  juce::AudioProcessorValueTreeState::ParameterLayout layout;
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "Attack", "attack", juce::NormalisableRange<float>(0.0, 5.0), 0.5f));
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "Sustain", "sustain", juce::NormalisableRange<float>(0.0, 5.0), 0.5f));
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "Decay", "decay", juce::NormalisableRange<float>(0.0, 1.0), 0.5f));
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "Release", "release", juce::NormalisableRange<float>(0.0, 1.0), 0.5f));
+
+  return layout;
 }
 
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter() {

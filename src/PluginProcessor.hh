@@ -1,6 +1,10 @@
 #pragma once
 
+#include "juce_audio_basics/juce_audio_basics.h"
+#include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_processors/juce_audio_processors.h"
+#include "juce_core/juce_core.h"
+#include <atomic>
 
 class PluginProcessor : public juce::AudioProcessor {
 public:
@@ -33,6 +37,21 @@ public:
   void getStateInformation(juce::MemoryBlock &destData) override;
   void setStateInformation(const void *data, int sizeInBytes) override;
 
+  int getNumSamplerSounds() { return sampler.getNumSounds(); };
+  juce::AudioBuffer<float>& getWaveForm() const;
+
+  void loadFile(const juce::String &path);
+
+
+
 private:
+  juce::Synthesiser sampler;
+  const int numVoices{3};
+  juce::AudioFormatManager formatManager;
+
+  juce::AudioProcessorValueTreeState params;
+  juce::AudioProcessorValueTreeState::ParameterLayout parameterLayout();
+
+  std::atomic<bool> isNotePlayed{false};
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };
