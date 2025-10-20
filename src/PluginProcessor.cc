@@ -119,6 +119,7 @@ void PluginProcessor::loadFile(const juce::String &path) {
     range.setRange(0, 128, true);
     sampler.addSound(
         new juce::SamplerSound("Sample", *reader, range, 60, 0.1, 0.1, 10.0));
+
   }
 }
 
