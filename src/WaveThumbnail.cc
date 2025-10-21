@@ -7,7 +7,6 @@ WaveThumbnail::WaveThumbnail(PluginProcessor &p) : processor(p) {
 }
 
 void WaveThumbnail::paint(juce::Graphics &g) {
-    g.fillAll(juce::Colours::cadetblue.darker());
     const auto waveform = processor.getWaveForm();
 
     if (waveform.getNumSamples() > 0) {

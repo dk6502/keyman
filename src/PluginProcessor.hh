@@ -42,6 +42,8 @@ public:
 
   void loadFile(const juce::String &path);
 
+  juce::MidiKeyboardState keyboardState;
+
 
 
 private:

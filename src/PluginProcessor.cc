@@ -106,6 +106,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
+  keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
   sampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
