@@ -38,13 +38,11 @@ public:
   void setStateInformation(const void *data, int sizeInBytes) override;
 
   int getNumSamplerSounds() { return sampler.getNumSounds(); };
-  juce::AudioBuffer<float>& getWaveForm() const;
+  juce::AudioBuffer<float> &getWaveForm() const;
 
   void loadFile(const juce::String &path);
 
   juce::MidiKeyboardState keyboardState;
-
-
 
 private:
   juce::Synthesiser sampler;

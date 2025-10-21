@@ -37,6 +37,7 @@ target_sources(keyman
     src/PluginProcessor.cc
     src/PluginEditor.cc
     src/WaveThumbnail.cc
+    src/GrainSampler.cc
         )
 
 target_compile_definitions(keyman

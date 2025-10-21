@@ -22,7 +22,6 @@ private:
   juce::Synthesiser sampler;
   WaveThumbnail waveThumbnail;
 
-
   juce::TextButton filePicker;
   std::unique_ptr<juce::FileChooser> wavChooser;
 

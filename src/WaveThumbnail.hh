@@ -18,7 +18,7 @@ public:
 
 private:
   std::vector<float> audioPoints;
-  bool shouldBePainting {false};
+  bool shouldBePainting{false};
 
   juce::String filename;
 

@@ -8,19 +8,21 @@
 #include <memory>
 
 PluginEditor::PluginEditor(PluginProcessor &p)
-    : AudioProcessorEditor(&p), processorRef(p), waveThumbnail(p), keyboardComponent(p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard) {
+    : AudioProcessorEditor(&p), processorRef(p), waveThumbnail(p),
+      keyboardComponent(p.keyboardState,
+                        juce::MidiKeyboardComponent::horizontalKeyboard) {
   juce::ignoreUnused(processorRef);
 
   addAndMakeVisible(waveThumbnail);
   addAndMakeVisible(filePicker);
+  filePicker.setButtonText("Load File");
   filePicker.onClick = [this] { loadWav(); };
 
   addAndMakeVisible(keyboardComponent);
   setSize(600, 450);
 }
 
-PluginEditor::~PluginEditor() {
-}
+PluginEditor::~PluginEditor() {}
 
 void PluginEditor::paint(juce::Graphics &g) {
   g.fillAll(
@@ -35,12 +37,15 @@ void PluginEditor::resized() {
 }
 
 void PluginEditor::loadWav() {
-    wavChooser = std::make_unique<juce::FileChooser> ("Please select the file you want to load...", juce::File::getSpecialLocation(juce::File::userHomeDirectory), "*wav");
-    auto chooserFlags = juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::openMode;
-    wavChooser->launchAsync(chooserFlags, [this] (const juce::FileChooser& chooser)
-        {
-            auto name = chooser.getResult().getFullPathName();
-            processorRef.loadFile(juce::String(name));
-            waveThumbnail.repaint();
-        });
+  wavChooser = std::make_unique<juce::FileChooser>(
+      "Please select the file you want to load...",
+      juce::File::getSpecialLocation(juce::File::userHomeDirectory), "*wav");
+  auto chooserFlags = juce::FileBrowserComponent::canSelectFiles |
+                      juce::FileBrowserComponent::openMode;
+  wavChooser->launchAsync(chooserFlags,
+                          [this](const juce::FileChooser &chooser) {
+                            auto name = chooser.getResult().getFullPathName();
+                            processorRef.loadFile(juce::String(name));
+                            waveThumbnail.repaint();
+                          });
 }

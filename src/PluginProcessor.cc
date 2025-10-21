@@ -1,4 +1,5 @@
 #include "PluginProcessor.hh"
+#include "GrainSampler.hh"
 #include "PluginEditor.hh"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
@@ -19,7 +20,7 @@ PluginProcessor::PluginProcessor()
       params(*this, nullptr, "Params", parameterLayout()) {
   formatManager.registerBasicFormats();
   for (int i = 0; i < numVoices; i++) {
-    sampler.addVoice(new juce::SamplerVoice);
+    sampler.addVoice(new GrainVoice);
   }
 }
 
@@ -106,7 +107,8 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float> &buffer,
 
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
-  keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(), true);
+  keyboardState.processNextMidiBuffer(midiMessages, 0, buffer.getNumSamples(),
+                                      true);
   sampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
@@ -119,8 +121,7 @@ void PluginProcessor::loadFile(const juce::String &path) {
     juce::BigInteger range;
     range.setRange(0, 128, true);
     sampler.addSound(
-        new juce::SamplerSound("Sample", *reader, range, 60, 0.1, 0.1, 10.0));
-
+        new GrainSound("Sample", *reader, range, 60, 0.1, 0.1, 10.0));
   }
 }
 
@@ -138,15 +139,15 @@ void PluginProcessor::setStateInformation(const void *data, int sizeInBytes) {
   juce::ignoreUnused(data, sizeInBytes);
 }
 
-juce::AudioBuffer<float>& PluginProcessor::getWaveForm() const {
-    if (const auto sound = dynamic_cast<juce::SamplerSound*>(sampler.getSound(sampler.getNumSounds() - 1).get()))
-    {
-        return *sound->getAudioData();
-    }
+juce::AudioBuffer<float> &PluginProcessor::getWaveForm() const {
+  if (const auto sound = dynamic_cast<GrainSound *>(
+          sampler.getSound(sampler.getNumSounds() - 1).get())) {
+    return *sound->getAudioData();
+  }
 
-    static juce::AudioBuffer<float> dummybuffer;
+  static juce::AudioBuffer<float> dummybuffer;
 
-    return dummybuffer;
+  return dummybuffer;
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout
