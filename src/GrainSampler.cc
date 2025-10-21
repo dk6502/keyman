@@ -1,8 +1,12 @@
 #include "GrainSampler.hh"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
+#include "juce_graphics/juce_graphics.cpp"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <iterator>
+#include <vector>
 
 GrainSound::GrainSound (const juce::String& soundName,
                             juce::AudioFormatReader& source,
@@ -45,7 +49,9 @@ bool GrainSound::appliesToChannel (int /*midiChannel*/)
     return true;
 }
 
-GrainVoice::GrainVoice() {};
+GrainVoice::GrainVoice() {
+    grainsL.push_back(std::vector<float>(getSampleRate()));
+};
 GrainVoice::~GrainVoice() {};
 
 bool GrainVoice::canPlaySound(juce::SynthesiserSound *s) {
@@ -56,13 +62,20 @@ void GrainVoice::startNote(int midiNoteNumber, float velocity,
                            juce::SynthesiserSound *s,
                            int currentPitchWheelPosition) {
   if (auto *sound = dynamic_cast<const GrainSound *>(s)) {
+    grainsL[0].clear();
     pitchRatio = std::pow(2.0, (midiNoteNumber - sound->midiRootNote) / 12.0) *
                  sound->sourceSampleRate / getSampleRate();
-    sourceSamplePosition = 0.0;
     lgain = velocity;
     rgain = velocity;
+    auto& data = *sound->data;
+    const float* const inL = data.getReadPointer (0);
+    const float* const inR = data.getNumChannels() > 1 ? data.getReadPointer (1) : nullptr;
+    for (int i = 0; i<getSampleRate(); i++) {
+        grainsL[0].push_back(inL[std::clamp(0, data.getNumSamples(), 4410 + (int) ( i * pitchRatio))]);
+    }
   }
 }
+
 
 void GrainVoice::stopNote(float, bool) {
     clearCurrentNote();
@@ -82,9 +95,10 @@ void GrainVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int st
         float* outL = outputBuffer.getWritePointer (0, startSample);
         float* outR = outputBuffer.getNumChannels() > 1 ? outputBuffer.getWritePointer (1, startSample) : nullptr;
 
-        while (--numSamples >= 0)
+        for (int i = 0; i < numSamples - startSample; i++)
         {
-            auto pos = (int) sourceSamplePosition;
+            pos++;
+            /*
             auto alpha = (float) (sourceSamplePosition - pos);
             auto invAlpha = 1.0f - alpha;
 
@@ -92,27 +106,14 @@ void GrainVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int st
             float l = (inL[pos] * invAlpha + inL[pos + 1] * alpha);
             float r = (inR != nullptr) ? (inR[pos] * invAlpha + inR[pos + 1] * alpha)
                                        : l;
-
             l *= lgain;
             r *= rgain;
+            */
 
-            if (outR != nullptr)
-            {
-                *outL++ += l;
-                *outR++ += r;
-            }
-            else
-            {
-                *outL++ += (l + r) * 0.5f;
-            }
+            auto grainpos = pos%4410;
+            *outL++ = grainsL[0][grainpos];
+            *outR++ = grainsL[0][grainpos];
 
-            sourceSamplePosition += pitchRatio;
-
-            if (sourceSamplePosition > playingSound->length)
-            {
-                stopNote (0.0f, false);
-                break;
-            }
         }
     }
 }

@@ -55,7 +55,9 @@ public:
 
 private:
   double pitchRatio = 0;
-  double sourceSamplePosition = 0;
+  int pos = 0;
   double lgain = 0;
   double rgain = 0;
+  std::vector<std::vector<float>> grainsL;
+  std::vector<std::vector<float>> grainsR;
 };
