@@ -11,13 +11,12 @@ PluginEditor::PluginEditor(PluginProcessor &p)
     : AudioProcessorEditor(&p), processorRef(p), waveThumbnail(p), keyboardComponent(p.keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard) {
   juce::ignoreUnused(processorRef);
 
-  setSize(600, 450);
-
   addAndMakeVisible(waveThumbnail);
   addAndMakeVisible(filePicker);
   filePicker.onClick = [this] { loadWav(); };
 
   addAndMakeVisible(keyboardComponent);
+  setSize(600, 450);
 }
 
 PluginEditor::~PluginEditor() {
