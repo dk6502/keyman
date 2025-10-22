@@ -7,6 +7,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
+#include <iostream>
 #include <vector>
 
 
@@ -52,7 +54,9 @@ bool GrainSound::appliesToChannel (int /*midiChannel*/)
 }
 
 GrainVoice::GrainVoice() {
-    grainsL.push_back(std::vector<float>(getSampleRate()));
+    for (int i = 0;i < 50; i++){
+        grainsL.push_back(std::vector<float>(getSampleRate()));
+    }
 };
 GrainVoice::~GrainVoice() {};
 
@@ -63,9 +67,10 @@ bool GrainVoice::canPlaySound(juce::SynthesiserSound *s) {
 void GrainVoice::startNote(int midiNoteNumber, float velocity,
                            juce::SynthesiserSound *s,
                            int) {
+  pos = 0;
+  sample_inc = 0;
   if (auto *sound = dynamic_cast<const GrainSound *>(s)) {
-    grainsL[0].clear();
-    pitchRatio = std::pow(2.0, (midiNoteNumber - sound->midiRootNote) / 12.0) *
+      pitchRatio = std::pow(2.0, (midiNoteNumber - sound->midiRootNote) / 12.0) *
                  sound->sourceSampleRate / getSampleRate();
     lgain = velocity;
     rgain = velocity;
@@ -77,14 +82,17 @@ void GrainVoice::startNote(int midiNoteNumber, float velocity,
         0.0,
         0.0,
     });
-    grainAdsr.noteOn();
-    const float* const inL = data.getReadPointer (0);
     const float* const inR = data.getNumChannels() > 1 ? data.getReadPointer (1) : nullptr;
-    for (size_t i = 0; i<getSampleRate(); i++) {
-        grainsL[0].push_back(inL[std::clamp(0, data.getNumSamples(), 44100 + (int) ( i * pitchRatio))]);
-        grainsL[0][i] *= grainAdsr.getNextSample();
+    for (size_t grain = 0; grain<grainsL.size(); grain++){
+        grainsL[grain].clear();
+        const float* const inL = data.getReadPointer (0);
+        grainAdsr.noteOn();
+        for (size_t sample = 0; sample<getSampleRate(); sample++) {
+            grainsL[grain].push_back(inL[std::clamp(0,(int) sound->getAudioData()->getNumSamples(),(int)(pitchRatio*delay_size*grain+ sample * pitchRatio))]);
+            grainsL[grain][sample] *= grainAdsr.getNextSample();
+        }
+        grainAdsr.reset();
     }
-    grainAdsr.reset();
     juce::ignoreUnused(inR);
   }
 }
@@ -108,9 +116,13 @@ void GrainVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int st
         {
             pos++;
 
+            if (pos % delay_size == 0 && sample_inc < 49) {
+              sample_inc++;
+            } else if (sample_inc == 48) stopNote(0, false);
+
             size_t grainpos = pos%delay_size;
-            *outL++ = lgain*grainsL[0][grainpos];
-            *outR++ = lgain*grainsL[0][grainpos];
+            *outL++ = lgain*grainsL[sample_inc][grainpos];
+            *outR++ = lgain*grainsL[sample_inc][grainpos];
 
         }
     }
