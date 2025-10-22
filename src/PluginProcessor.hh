@@ -46,12 +46,13 @@ public:
 
 private:
   juce::Synthesiser sampler;
-  const int numVoices{3};
+  const int numVoices{10};
   juce::AudioFormatManager formatManager;
 
   juce::AudioProcessorValueTreeState params;
   juce::AudioProcessorValueTreeState::ParameterLayout parameterLayout();
 
   std::atomic<bool> isNotePlayed{false};
+
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };

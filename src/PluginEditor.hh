@@ -3,13 +3,14 @@
 #include "PluginProcessor.hh"
 #include "WaveThumbnail.hh"
 #include "juce_audio_basics/juce_audio_basics.h"
+#include "juce_audio_processors/juce_audio_processors.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "juce_gui_basics/juce_gui_basics.h"
 #include <memory>
 
 class PluginEditor : public juce::AudioProcessorEditor {
 public:
-  explicit PluginEditor(PluginProcessor &);
+  explicit PluginEditor(PluginProcessor &, juce::AudioProcessorValueTreeState&);
   ~PluginEditor() override;
 
   void paint(juce::Graphics &) override;
@@ -26,6 +27,10 @@ private:
   std::unique_ptr<juce::FileChooser> wavChooser;
 
   juce::MidiKeyboardComponent keyboardComponent;
+
+  juce::Slider grainSizeSlider;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>
+      grainSizeSliderAttachment;
 
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginEditor)
 };

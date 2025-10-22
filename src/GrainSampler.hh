@@ -1,5 +1,6 @@
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
+#include "juce_audio_processors/juce_audio_processors.h"
 #include "juce_core/juce_core.h"
 #include <cstddef>
 
@@ -41,7 +42,7 @@ private:
 
 class GrainVoice : public juce::SynthesiserVoice {
 public:
-  GrainVoice();
+  GrainVoice(juce::AudioProcessorValueTreeState*);
   ~GrainVoice() override;
   bool canPlaySound(juce::SynthesiserSound *) override;
   void startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound *,
@@ -61,7 +62,9 @@ private:
   size_t sample_inc;
   double lgain = 0;
   double rgain = 0;
-  const size_t delay_size = 4096;
+  size_t grain_size = 4096;
+  juce::AudioParameterInt* grainSizeParam = nullptr;
+  size_t grain_count = 100;
   std::vector<std::vector<float>> grainsL;
   std::vector<std::vector<float>> grainsR;
   juce::ADSR grainAdsr;

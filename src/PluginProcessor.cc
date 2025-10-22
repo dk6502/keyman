@@ -20,7 +20,7 @@ PluginProcessor::PluginProcessor()
       params(*this, nullptr, "Params", parameterLayout()) {
   formatManager.registerBasicFormats();
   for (int i = 0; i < numVoices; i++) {
-    sampler.addVoice(new GrainVoice);
+    sampler.addVoice(new GrainVoice (&params));
   }
 }
 
@@ -128,7 +128,7 @@ void PluginProcessor::loadFile(const juce::String &path) {
 bool PluginProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor *PluginProcessor::createEditor() {
-  return new PluginEditor(*this);
+  return new PluginEditor(*this, params);
 }
 
 void PluginProcessor::getStateInformation(juce::MemoryBlock &destData) {
@@ -153,14 +153,8 @@ juce::AudioBuffer<float> &PluginProcessor::getWaveForm() const {
 juce::AudioProcessorValueTreeState::ParameterLayout
 PluginProcessor::parameterLayout() {
   juce::AudioProcessorValueTreeState::ParameterLayout layout;
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Attack", "attack", juce::NormalisableRange<float>(0.0, 5.0), 0.5f));
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Sustain", "sustain", juce::NormalisableRange<float>(0.0, 5.0), 0.5f));
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Decay", "decay", juce::NormalisableRange<float>(0.0, 1.0), 0.5f));
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "Release", "release", juce::NormalisableRange<float>(0.0, 1.0), 0.5f));
+  layout.add(std::make_unique<juce::AudioParameterInt>(
+      "size", "Size", 0, 44100, 4410));
 
   return layout;
 }
