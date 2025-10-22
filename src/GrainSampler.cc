@@ -1,12 +1,14 @@
 #include "GrainSampler.hh"
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
+#include "juce_core/juce_core.h"
 #include "juce_graphics/juce_graphics.cpp"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
-#include <iterator>
 #include <vector>
+
 
 GrainSound::GrainSound (const juce::String& soundName,
                             juce::AudioFormatReader& source,
@@ -60,7 +62,7 @@ bool GrainVoice::canPlaySound(juce::SynthesiserSound *s) {
 
 void GrainVoice::startNote(int midiNoteNumber, float velocity,
                            juce::SynthesiserSound *s,
-                           int currentPitchWheelPosition) {
+                           int) {
   if (auto *sound = dynamic_cast<const GrainSound *>(s)) {
     grainsL[0].clear();
     pitchRatio = std::pow(2.0, (midiNoteNumber - sound->midiRootNote) / 12.0) *
@@ -68,11 +70,22 @@ void GrainVoice::startNote(int midiNoteNumber, float velocity,
     lgain = velocity;
     rgain = velocity;
     auto& data = *sound->data;
+    grainAdsr.setSampleRate(sound->sourceSampleRate);
+    grainAdsr.setParameters(juce::ADSR::Parameters {
+        0.01,
+        (delay_size)/(float) sound->sourceSampleRate,
+        0.0,
+        0.0,
+    });
+    grainAdsr.noteOn();
     const float* const inL = data.getReadPointer (0);
     const float* const inR = data.getNumChannels() > 1 ? data.getReadPointer (1) : nullptr;
-    for (int i = 0; i<getSampleRate(); i++) {
-        grainsL[0].push_back(inL[std::clamp(0, data.getNumSamples(), 4410 + (int) ( i * pitchRatio))]);
+    for (size_t i = 0; i<getSampleRate(); i++) {
+        grainsL[0].push_back(inL[std::clamp(0, data.getNumSamples(), 44100 + (int) ( i * pitchRatio))]);
+        grainsL[0][i] *= grainAdsr.getNextSample();
     }
+    grainAdsr.reset();
+    juce::ignoreUnused(inR);
   }
 }
 
@@ -86,33 +99,18 @@ void GrainVoice::controllerMoved(int, int) {};
 
 void GrainVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
 {
-    if (auto* playingSound = static_cast<GrainSound*> (getCurrentlyPlayingSound().get()))
+    if (static_cast<GrainSound*> (getCurrentlyPlayingSound().get()))
     {
-        auto& data = *playingSound->data;
-        const float* const inL = data.getReadPointer (0);
-        const float* const inR = data.getNumChannels() > 1 ? data.getReadPointer (1) : nullptr;
-
         float* outL = outputBuffer.getWritePointer (0, startSample);
         float* outR = outputBuffer.getNumChannels() > 1 ? outputBuffer.getWritePointer (1, startSample) : nullptr;
 
         for (int i = 0; i < numSamples - startSample; i++)
         {
             pos++;
-            /*
-            auto alpha = (float) (sourceSamplePosition - pos);
-            auto invAlpha = 1.0f - alpha;
 
-            // just using a very simple linear interpolation here..
-            float l = (inL[pos] * invAlpha + inL[pos + 1] * alpha);
-            float r = (inR != nullptr) ? (inR[pos] * invAlpha + inR[pos + 1] * alpha)
-                                       : l;
-            l *= lgain;
-            r *= rgain;
-            */
-
-            auto grainpos = pos%4410;
-            *outL++ = grainsL[0][grainpos];
-            *outR++ = grainsL[0][grainpos];
+            size_t grainpos = pos%delay_size;
+            *outL++ = lgain*grainsL[0][grainpos];
+            *outR++ = lgain*grainsL[0][grainpos];
 
         }
     }

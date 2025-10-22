@@ -1,5 +1,6 @@
 #include "juce_audio_basics/juce_audio_basics.h"
 #include "juce_audio_formats/juce_audio_formats.h"
+#include <cstddef>
 
 class GrainSound : public juce::SynthesiserSound {
 public:
@@ -55,9 +56,11 @@ public:
 
 private:
   double pitchRatio = 0;
-  int pos = 0;
+  size_t pos = 0;
   double lgain = 0;
   double rgain = 0;
+  const size_t delay_size = 4096;
   std::vector<std::vector<float>> grainsL;
   std::vector<std::vector<float>> grainsR;
+  juce::ADSR grainAdsr;
 };
