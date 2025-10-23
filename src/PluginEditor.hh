@@ -10,7 +10,8 @@
 
 class PluginEditor : public juce::AudioProcessorEditor {
 public:
-  explicit PluginEditor(PluginProcessor &, juce::AudioProcessorValueTreeState&);
+  explicit PluginEditor(PluginProcessor &,
+                        juce::AudioProcessorValueTreeState &);
   ~PluginEditor() override;
 
   void paint(juce::Graphics &) override;

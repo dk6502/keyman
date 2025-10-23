@@ -2,7 +2,15 @@
 #include "juce_audio_formats/juce_audio_formats.h"
 #include "juce_audio_processors/juce_audio_processors.h"
 #include "juce_core/juce_core.h"
+#include "juce_dsp/juce_dsp.h"
+#include <array>
 #include <cstddef>
+#include <vector>
+
+struct AbstractGrain {
+  int grainID;
+  int grainPos;
+};
 
 class GrainSound : public juce::SynthesiserSound {
 public:
@@ -42,7 +50,7 @@ private:
 
 class GrainVoice : public juce::SynthesiserVoice {
 public:
-  GrainVoice(juce::AudioProcessorValueTreeState*);
+  GrainVoice(juce::AudioProcessorValueTreeState *);
   ~GrainVoice() override;
   bool canPlaySound(juce::SynthesiserSound *) override;
   void startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound *,
@@ -63,10 +71,11 @@ private:
   double lgain = 0;
   double rgain = 0;
   size_t grain_size = 4096;
-  juce::AudioParameterInt* grainSizeParam = nullptr;
+  juce::AudioParameterFloat *grainSizeParam = nullptr;
   size_t grain_count = 100;
-  std::vector<std::vector<float>> grainsL;
-  std::vector<std::vector<float>> grainsR;
-  juce::ADSR grainAdsr;
-  juce::Random ranGen;
+  std::array<juce::AudioBuffer<float>, 100> grains;
+  juce::dsp::WindowingFunction<float> hann =
+      juce::dsp::WindowingFunction<float>(
+          4410, juce::dsp::WindowingFunction<float>::hann, true, 0);
+  std::vector<AbstractGrain> grainCluster;
 };
